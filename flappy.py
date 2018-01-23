@@ -16,6 +16,18 @@ BASEY        = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 
+PIPE_VEL_X = -4
+
+# player velocity, max velocity, downward accleration, accleration on flap
+PLAYER_VEL_Y    =  -9   # player's velocity along Y, default same as playerFlapped
+PLAYER_MAX_VEL_Y =  10   # max vel along Y, max descend speed
+PLAYER_MIN_VEL_Y =  -8   # min vel along Y, max ascend speed TODO: implement?
+PLAYER_ACC_Y    =   1   # players downward accleration
+PLAYER_ROT     =  45   # player's rotation
+PLAYER_VEL_ROT  =   3   # angular speed
+PLAYER_ROT_THR  =  20   # rotation threshold
+PLAYER_FLAP_ACC =  -9   # players speed on flapping
+
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
     # red bird
@@ -94,6 +106,7 @@ def main():
     SOUNDS['swoosh'] = pygame.mixer.Sound('assets/audio/swoosh' + soundExt)
     SOUNDS['wing']   = pygame.mixer.Sound('assets/audio/wing' + soundExt)
 
+    # iterates over multiple games
     while True:
         # select random background sprites
         randBg = random.randint(0, len(BACKGROUNDS_LIST) - 1)
@@ -185,8 +198,17 @@ def showWelcomeAnimation():
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
-
 def mainGame(movementInfo):
+    global PIPE_VEL_X
+    global PLAYER_VEL_Y
+    global PLAYER_MAX_VEL_Y
+    global PLAYER_MIN_VEL_Y
+    global PLAYER_ACC_Y
+    global PLAYER_ROT
+    global PLAYER_VEL_ROT
+    global PLAYER_ROT_THR
+    global PLAYER_FLAP_ACC
+
     score = playerIndex = loopIter = 0
     playerIndexGen = movementInfo['playerIndexGen']
     playerx, playery = int(SCREENWIDTH * 0.2), movementInfo['playery']
@@ -210,19 +232,7 @@ def mainGame(movementInfo):
         {'x': SCREENWIDTH + 200 + (SCREENWIDTH / 2), 'y': newPipe2[1]['y']},
     ]
 
-    pipeVelX = -4
-
-    # player velocity, max velocity, downward accleration, accleration on flap
-    playerVelY    =  -9   # player's velocity along Y, default same as playerFlapped
-    playerMaxVelY =  10   # max vel along Y, max descend speed
-    playerMinVelY =  -8   # min vel along Y, max ascend speed
-    playerAccY    =   1   # players downward accleration
-    playerRot     =  45   # player's rotation
-    playerVelRot  =   3   # angular speed
-    playerRotThr  =  20   # rotation threshold
-    playerFlapAcc =  -9   # players speed on flapping
     playerFlapped = False # True when player flaps
-
 
     while True:
         for event in pygame.event.get():
@@ -231,7 +241,7 @@ def mainGame(movementInfo):
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 if playery > -2 * IMAGES['player'][0].get_height():
-                    playerVelY = playerFlapAcc
+                    PLAYER_VEL_Y = PLAYER_FLAP_ACC
                     playerFlapped = True
                     SOUNDS['wing'].play()
 
@@ -246,8 +256,8 @@ def mainGame(movementInfo):
                 'upperPipes': upperPipes,
                 'lowerPipes': lowerPipes,
                 'score': score,
-                'playerVelY': playerVelY,
-                'playerRot': playerRot
+                'PLAYER_VEL_Y': PLAYER_VEL_Y,
+                'PLAYER_ROT': PLAYER_ROT
             }
 
         # check for score
@@ -265,25 +275,25 @@ def mainGame(movementInfo):
         basex = -((-basex + 100) % baseShift)
 
         # rotate the player
-        if playerRot > -90:
-            playerRot -= playerVelRot
+        if PLAYER_ROT > -90:
+            PLAYER_ROT -= PLAYER_VEL_ROT
 
         # player's movement
-        if playerVelY < playerMaxVelY and not playerFlapped:
-            playerVelY += playerAccY
+        if PLAYER_VEL_Y < PLAYER_MAX_VEL_Y and not playerFlapped:
+            PLAYER_VEL_Y += PLAYER_ACC_Y
         if playerFlapped:
             playerFlapped = False
 
             # more rotation to cover the threshold (calculated in visible rotation)
-            playerRot = 45
+            PLAYER_ROT = 45
 
         playerHeight = IMAGES['player'][playerIndex].get_height()
-        playery += min(playerVelY, BASEY - playery - playerHeight)
+        playery += min(PLAYER_VEL_Y, BASEY - playery - playerHeight)
 
         # move pipes to left
         for uPipe, lPipe in zip(upperPipes, lowerPipes):
-            uPipe['x'] += pipeVelX
-            lPipe['x'] += pipeVelX
+            uPipe['x'] += PIPE_VEL_X
+            lPipe['x'] += PIPE_VEL_X
 
         # add new pipe when first pipe is about to touch left of screen
         if 0 < upperPipes[0]['x'] < 5:
@@ -308,10 +318,10 @@ def mainGame(movementInfo):
         showScore(score)
 
         # Player rotation has a threshold
-        visibleRot = playerRotThr
-        if playerRot <= playerRotThr:
-            visibleRot = playerRot
-        
+        visibleRot = PLAYER_ROT_THR
+        if PLAYER_ROT <= PLAYER_ROT_THR:
+            visibleRot = PLAYER_ROT
+
         playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
         SCREEN.blit(playerSurface, (playerx, playery))
 
@@ -325,10 +335,10 @@ def showGameOverScreen(crashInfo):
     playerx = SCREENWIDTH * 0.2
     playery = crashInfo['y']
     playerHeight = IMAGES['player'][0].get_height()
-    playerVelY = crashInfo['playerVelY']
-    playerAccY = 2
-    playerRot = crashInfo['playerRot']
-    playerVelRot = 7
+    PLAYER_VEL_Y = crashInfo['PLAYER_VEL_Y']
+    PLAYER_ACC_Y = 2
+    PLAYER_ROT = crashInfo['PLAYER_ROT']
+    PLAYER_VEL_ROT = 7
 
     basex = crashInfo['basex']
 
@@ -350,16 +360,16 @@ def showGameOverScreen(crashInfo):
 
         # player y shift
         if playery + playerHeight < BASEY - 1:
-            playery += min(playerVelY, BASEY - playery - playerHeight)
+            playery += min(PLAYER_VEL_Y, BASEY - playery - playerHeight)
 
         # player velocity change
-        if playerVelY < 15:
-            playerVelY += playerAccY
+        if PLAYER_VEL_Y < 15:
+            PLAYER_VEL_Y += PLAYER_ACC_Y
 
         # rotate only when it's a pipe crash
         if not crashInfo['groundCrash']:
-            if playerRot > -90:
-                playerRot -= playerVelRot
+            if PLAYER_ROT > -90:
+                PLAYER_ROT -= PLAYER_VEL_ROT
 
         # draw sprites
         SCREEN.blit(IMAGES['background'], (0,0))
@@ -371,7 +381,7 @@ def showGameOverScreen(crashInfo):
         SCREEN.blit(IMAGES['base'], (basex, BASEY))
         showScore(score)
 
-        playerSurface = pygame.transform.rotate(IMAGES['player'][1], playerRot)
+        playerSurface = pygame.transform.rotate(IMAGES['player'][1], PLAYER_ROT)
         SCREEN.blit(playerSurface, (playerx,playery))
 
         FPSCLOCK.tick(FPS)
