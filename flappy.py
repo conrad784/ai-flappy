@@ -6,7 +6,6 @@ import sys
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP
 
-
 FPS = 30
 SCREENWIDTH  = 288
 SCREENHEIGHT = 512
@@ -16,6 +15,7 @@ BASEY        = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 
+PLAYER_X = int(SCREENWIDTH * 0.2)
 PIPE_VEL_X = -4
 
 # player velocity, max velocity, downward accleration, accleration on flap
@@ -62,9 +62,6 @@ PIPES_LIST = (
     'assets/sprites/pipe-green.png',
     'assets/sprites/pipe-red.png',
 )
-
-
-
 
 def main():
     global SCREEN, FPSCLOCK
@@ -148,13 +145,13 @@ def main():
 
 def showWelcomeAnimation():
     """Shows welcome screen animation of flappy bird"""
+    global PLAYER_X
     # index of player to blit on screen
     playerIndex = 0
     playerIndexGen = cycle([0, 1, 2, 1])
     # iterator used to change playerIndex after every 5th iteration
     loopIter = 0
 
-    playerx = int(SCREENWIDTH * 0.2)
     playery = int((SCREENHEIGHT - IMAGES['player'][0].get_height()) / 2)
 
     messagex = int((SCREENWIDTH - IMAGES['message'].get_width()) / 2)
@@ -191,7 +188,7 @@ def showWelcomeAnimation():
         # draw sprites
         SCREEN.blit(IMAGES['background'], (0,0))
         SCREEN.blit(IMAGES['player'][playerIndex],
-                    (playerx, playery + playerShmVals['val']))
+                    (PLAYER_X, playery + playerShmVals['val']))
         SCREEN.blit(IMAGES['message'], (messagex, messagey))
         SCREEN.blit(IMAGES['base'], (basex, BASEY))
 
@@ -199,6 +196,7 @@ def showWelcomeAnimation():
         FPSCLOCK.tick(FPS)
 
 def mainGame(movementInfo):
+    global PLAYER_X
     global PIPE_VEL_X
     global PLAYER_VEL_Y
     global PLAYER_MAX_VEL_Y
@@ -211,7 +209,7 @@ def mainGame(movementInfo):
 
     score = playerIndex = loopIter = 0
     playerIndexGen = movementInfo['playerIndexGen']
-    playerx, playery = int(SCREENWIDTH * 0.2), movementInfo['playery']
+    playery = movementInfo['playery']
 
     basex = movementInfo['basex']
     baseShift = IMAGES['base'].get_width() - IMAGES['background'].get_width()
@@ -246,7 +244,7 @@ def mainGame(movementInfo):
                     SOUNDS['wing'].play()
 
         # check for crash here
-        crashTest = checkCrash({'x': playerx, 'y': playery, 'index': playerIndex},
+        crashTest = checkCrash({'x': PLAYER_X, 'y': playery, 'index': playerIndex},
                                upperPipes, lowerPipes)
         if crashTest[0]:
             return {
@@ -261,7 +259,7 @@ def mainGame(movementInfo):
             }
 
         # check for score
-        playerMidPos = playerx + IMAGES['player'][0].get_width() / 2
+        playerMidPos = PLAYER_X + IMAGES['player'][0].get_width() / 2
         for pipe in upperPipes:
             pipeMidPos = pipe['x'] + IMAGES['pipe'][0].get_width() / 2
             if pipeMidPos <= playerMidPos < pipeMidPos + 4:
@@ -323,7 +321,7 @@ def mainGame(movementInfo):
             visibleRot = PLAYER_ROT
 
         playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
-        SCREEN.blit(playerSurface, (playerx, playery))
+        SCREEN.blit(playerSurface, (PLAYER_X, playery))
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
@@ -331,8 +329,8 @@ def mainGame(movementInfo):
 
 def showGameOverScreen(crashInfo):
     """crashes the player down ans shows gameover image"""
+    global PLAYER_X
     score = crashInfo['score']
-    playerx = SCREENWIDTH * 0.2
     playery = crashInfo['y']
     playerHeight = IMAGES['player'][0].get_height()
     PLAYER_VEL_Y = crashInfo['PLAYER_VEL_Y']
@@ -382,7 +380,7 @@ def showGameOverScreen(crashInfo):
         showScore(score)
 
         playerSurface = pygame.transform.rotate(IMAGES['player'][1], PLAYER_ROT)
-        SCREEN.blit(playerSurface, (playerx,playery))
+        SCREEN.blit(playerSurface, (PLAYER_X,playery))
 
         FPSCLOCK.tick(FPS)
         pygame.display.update()
