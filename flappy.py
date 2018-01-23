@@ -19,11 +19,13 @@ PLAYER_X = int(SCREENWIDTH * 0.2)
 PIPE_VEL_X = -4
 
 # player velocity, max velocity, downward accleration, accleration on flap
-PLAYER_VEL_Y    =  -9   # player's velocity along Y, default same as playerFlapped
+PLAYER_ROT_DEFAULT = 45
+PLAYER_VEL_Y_DEFAULT = -9
+PLAYER_VEL_Y = PLAYER_VEL_Y_DEFAULT  # player's velocity along Y, default same as playerFlapped
+PLAYER_ROT = PLAYER_ROT_DEFAULT   # player's rotation
 PLAYER_MAX_VEL_Y =  10   # max vel along Y, max descend speed
 PLAYER_MIN_VEL_Y =  -8   # min vel along Y, max ascend speed TODO: implement?
 PLAYER_ACC_Y    =   1   # players downward accleration
-PLAYER_ROT     =  45   # player's rotation
 PLAYER_VEL_ROT  =   3   # angular speed
 PLAYER_ROT_THR  =  20   # rotation threshold
 PLAYER_FLAP_ACC =  -9   # players speed on flapping
@@ -254,8 +256,6 @@ def mainGame(movementInfo):
                 'upperPipes': upperPipes,
                 'lowerPipes': lowerPipes,
                 'score': score,
-                'PLAYER_VEL_Y': PLAYER_VEL_Y,
-                'PLAYER_ROT': PLAYER_ROT
             }
 
         # check for score
@@ -330,12 +330,12 @@ def mainGame(movementInfo):
 def showGameOverScreen(crashInfo):
     """crashes the player down ans shows gameover image"""
     global PLAYER_X
+    global PLAYER_VEL_Y
+    global PLAYER_ROT
     score = crashInfo['score']
     playery = crashInfo['y']
     playerHeight = IMAGES['player'][0].get_height()
-    PLAYER_VEL_Y = crashInfo['PLAYER_VEL_Y']
     PLAYER_ACC_Y = 2
-    PLAYER_ROT = crashInfo['PLAYER_ROT']
     PLAYER_VEL_ROT = 7
 
     basex = crashInfo['basex']
@@ -354,6 +354,8 @@ def showGameOverScreen(crashInfo):
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 if playery + playerHeight >= BASEY - 1:
+                    PLAYER_ROT = PLAYER_ROT_DEFAULT
+                    PLAYER_VEL_Y = PLAYER_VEL_Y_DEFAULT
                     return
 
         # player y shift
