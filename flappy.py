@@ -2,6 +2,9 @@
 from itertools import cycle
 import random
 import sys
+import numpy as np
+from copy import deepcopy
+from operator import itemgetter
 
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP
@@ -14,6 +17,9 @@ PIPEGAPSIZE  = 100 # gap between upper and lower part of pipe
 BASEY        = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
+FRAME_SKIP = 2
+AGENT_FREQ = FRAME_SKIP
+ENABLE_ROT = False
 
 PLAYER_X = int(SCREENWIDTH * 0.2)
 PIPE_VEL_X = -4
@@ -29,6 +35,10 @@ PLAYER_ACC_Y    =   1   # players downward accleration
 PLAYER_VEL_ROT  =   3   # angular speed
 PLAYER_ROT_THR  =  20   # rotation threshold
 PLAYER_FLAP_ACC =  -9   # players speed on flapping
+SCORE_DISTR_VARIANCE = PIPEGAPSIZE/4 - 10
+
+MAX_DEPTH = 10
+MAX_PATHS = 80
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
@@ -233,6 +243,10 @@ def mainGame(movementInfo):
     ]
 
     playerFlapped = False # True when player flaps
+    frame_count = 0
+    path_frame_start = 0
+    player_vel_y = PLAYER_VEL_Y
+    player_rot = PLAYER_ROT
 
     while True:
         for event in pygame.event.get():
@@ -241,9 +255,20 @@ def mainGame(movementInfo):
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 if playery > -2 * IMAGES['player'][0].get_height():
-                    PLAYER_VEL_Y = PLAYER_FLAP_ACC
+                    player_vel_y = PLAYER_FLAP_ACC
                     playerFlapped = True
                     SOUNDS['wing'].play()
+
+        if playery > -2 * IMAGES['player'][0].get_height():
+            if not frame_count % AGENT_FREQ:
+                agent = Agent()
+                flap, optimal_path = agent.findBestDecision(GameState(playery, player_vel_y, upperPipes, lowerPipes))
+                path_frame_start = frame_count
+
+            if flap:
+                player_vel_y = PLAYER_FLAP_ACC
+                playerFlapped = True
+                SOUNDS['wing'].play()
 
         # check for crash here
         crashTest = checkCrash({'x': PLAYER_X, 'y': playery, 'index': playerIndex},
@@ -256,6 +281,8 @@ def mainGame(movementInfo):
                 'upperPipes': upperPipes,
                 'lowerPipes': lowerPipes,
                 'score': score,
+                'player_vel_y': player_vel_y,
+                'player_rot': player_rot
             }
 
         # check for score
@@ -273,20 +300,21 @@ def mainGame(movementInfo):
         basex = -((-basex + 100) % baseShift)
 
         # rotate the player
-        if PLAYER_ROT > -90:
-            PLAYER_ROT -= PLAYER_VEL_ROT
+        if player_rot > -90 and ENABLE_ROT:
+            player_rot -= PLAYER_VEL_ROT
 
         # player's movement
-        if PLAYER_VEL_Y < PLAYER_MAX_VEL_Y and not playerFlapped:
-            PLAYER_VEL_Y += PLAYER_ACC_Y
+        if player_vel_y < PLAYER_MAX_VEL_Y and not playerFlapped:
+            player_vel_y += PLAYER_ACC_Y
         if playerFlapped:
             playerFlapped = False
 
             # more rotation to cover the threshold (calculated in visible rotation)
-            PLAYER_ROT = 45
+            if ENABLE_ROT:
+                player_rot = 45
 
         playerHeight = IMAGES['player'][playerIndex].get_height()
-        playery += min(PLAYER_VEL_Y, BASEY - playery - playerHeight)
+        playery += min(player_vel_y, BASEY - playery - playerHeight)
 
         # move pipes to left
         for uPipe, lPipe in zip(upperPipes, lowerPipes):
@@ -316,12 +344,31 @@ def mainGame(movementInfo):
         showScore(score)
 
         # Player rotation has a threshold
-        visibleRot = PLAYER_ROT_THR
-        if PLAYER_ROT <= PLAYER_ROT_THR:
-            visibleRot = PLAYER_ROT
+        if ENABLE_ROT:
+            visibleRot = PLAYER_ROT_THR
+        else:
+            visibleRot = 0
+        if player_rot <= PLAYER_ROT_THR and ENABLE_ROT:
+            visibleRot = player_rot
 
         playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
         SCREEN.blit(playerSurface, (PLAYER_X, playery))
+
+        mid_x, mid_y = IMAGES['player'][0].get_width() / 2, IMAGES['player'][0].get_height() / 2
+
+        offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
+        mid_x += offset_x
+
+        previous_x = PLAYER_X
+        previous_y = playery
+        for y in optimal_path:
+            x = previous_x - PIPE_VEL_X * FRAME_SKIP
+            pygame.draw.line(SCREEN, (255, 0, 0), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
+
+            previous_x = x
+            previous_y = y
+
+        frame_count += 1
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
@@ -335,7 +382,9 @@ def showGameOverScreen(crashInfo):
     score = crashInfo['score']
     playery = crashInfo['y']
     playerHeight = IMAGES['player'][0].get_height()
+    player_vel_y = crashInfo['player_vel_y']
     PLAYER_ACC_Y = 2
+    player_rot = crashInfo['player_rot']
     PLAYER_VEL_ROT = 7
 
     basex = crashInfo['basex']
@@ -360,16 +409,16 @@ def showGameOverScreen(crashInfo):
 
         # player y shift
         if playery + playerHeight < BASEY - 1:
-            playery += min(PLAYER_VEL_Y, BASEY - playery - playerHeight)
+            playery += min(player_vel_y, BASEY - playery - playerHeight)
 
         # player velocity change
-        if PLAYER_VEL_Y < 15:
-            PLAYER_VEL_Y += PLAYER_ACC_Y
+        if player_vel_y < 15:
+            player_vel_y += PLAYER_ACC_Y
 
         # rotate only when it's a pipe crash
         if not crashInfo['groundCrash']:
-            if PLAYER_ROT > -90:
-                PLAYER_ROT -= PLAYER_VEL_ROT
+            if player_rot > -90:
+                player_rot -= PLAYER_VEL_ROT
 
         # draw sprites
         SCREEN.blit(IMAGES['background'], (0,0))
@@ -381,12 +430,149 @@ def showGameOverScreen(crashInfo):
         SCREEN.blit(IMAGES['base'], (basex, BASEY))
         showScore(score)
 
-        playerSurface = pygame.transform.rotate(IMAGES['player'][1], PLAYER_ROT)
+        playerSurface = pygame.transform.rotate(IMAGES['player'][1], player_rot)
         SCREEN.blit(playerSurface, (PLAYER_X,playery))
 
         FPSCLOCK.tick(FPS)
         pygame.display.update()
 
+def scoreFunction(displacement, cutoff=None):
+    """
+    Gives score given a displacement, currently gaussian distribution because I'm not creative
+
+    arguments:
+        displacement (float) - how far the player is away from the goal
+        cutoff       (float) - at which displacement to award 0 points
+    returns:
+        score        (float) - score corresponding to this displacement
+    """
+    global SCORE_DISTR_VARIANCE
+    if not cutoff:
+        cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
+    return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
+
+class GameState():
+    def __init__(self, _player_y, _player_vel_y, _upper_pipes, _lower_pipes):
+        self.player_y = deepcopy(_player_y)
+        self.player_vel_y = deepcopy(_player_vel_y)
+        self.upper_pipes = deepcopy(_upper_pipes)
+        self.lower_pipes = deepcopy(_lower_pipes)
+
+    def next(self, flap):
+        """
+        This method advances the GameState by 1 tick and checks, whether or not the player crashes.
+        arguments:
+            flap (bool) whether or not the player flaps at the beginning of the tick
+        return:
+            True   -   crash
+            False  -   no crash
+        """
+        global PLAYER_FLAP_ACC
+        global PLAYER_ACC_Y
+        global PLAYER_X
+        global PIPE_VEL_X
+        global BASEY
+
+        flapped = False
+
+        for _ in range(FRAME_SKIP):
+            if self.player_y > -2 * IMAGES['player'][0].get_height() and flap and not flapped: # check if out of image
+                self.player_vel_y = PLAYER_FLAP_ACC
+                flapped = True
+
+            # check for crash here
+            crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': 0},
+                                   self.upper_pipes, self.lower_pipes)
+
+            if crashTest[0]:
+                return True
+
+            # player's movement
+            if self.player_vel_y < PLAYER_MAX_VEL_Y and not flapped: # max vel check for friction
+                self.player_vel_y += PLAYER_ACC_Y
+
+            playerHeight = IMAGES['player'][0].get_height() # TODO: check if this causes crashes if we dont continue to rotate 0 -> playerIndex
+            self.player_y += min(self.player_vel_y, BASEY - self.player_y - playerHeight)
+
+            # move pipes to left
+            for uPipe, lPipe in zip(self.upper_pipes, self.lower_pipes):
+                uPipe['x'] += PIPE_VEL_X
+                lPipe['x'] += PIPE_VEL_X
+
+            # check for crash here
+            crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': 0},
+                                   self.upper_pipes, self.lower_pipes)
+
+            if crashTest[0]:
+                return True
+
+        return False
+
+    def getScore(self):
+        global PIPEGAPSIZE
+        goal = SCREENHEIGHT / 2
+
+        pipeW = IMAGES['pipe'][0].get_width()
+        leftest_pipe_u = min(self.upper_pipes, key=lambda p: p['x'] if PLAYER_X < p['x'] + pipeW else np.inf)
+        u_lower_bound = leftest_pipe_u['y'] + IMAGES['pipe'][0].get_height()
+
+        if leftest_pipe_u['x'] < SCREENWIDTH:
+            goal = u_lower_bound + PIPEGAPSIZE/2
+
+        displacement = abs(goal - self.player_y)
+
+        return scoreFunction(displacement)
+
+class Agent():
+    def getPathScore(self, state):
+        global MAX_DEPTH
+        global MAX_PATHS
+        #      state, depth, score, list of choices
+        stack = [(state, 0, 0, [state.player_y])]
+        final_states = []
+        max_num = MAX_PATHS
+        while len(stack):
+            state1, curr_depth, score, pos_hist1 = stack.pop()
+            if curr_depth >= MAX_DEPTH:
+                final_states.append((score, pos_hist1))
+                max_num -= 1
+                if not max_num:
+                    break
+                continue
+            state2, pos_hist2 = deepcopy(state1), deepcopy(pos_hist1)
+
+            if not state1.next(True):
+                pos_hist1.append(state1.player_y)
+                stack.append((state1, curr_depth+1, score+state1.getScore(), pos_hist1))
+            if not state2.next(False):
+                pos_hist2.append(state2.player_y)
+                stack.append((state2, curr_depth+1, score+state2.getScore(), pos_hist2))
+
+        try:
+            highscore = max(final_states, key=itemgetter(0))
+        except ValueError:
+            highscore = 0, []
+        return highscore
+
+    def findBestDecision(self, state):
+        no_flap = deepcopy(state)
+
+        if state.next(True):
+            no_flap.next(False)
+            score, path = self.getPathScore(no_flap)
+            return False, path
+
+        if no_flap.next(False):
+            score, path = self.getPathScore(state)
+            return True, path
+
+        flap_score, flap_traj = self.getPathScore(state)
+        no_flap_score, no_flap_traj = self.getPathScore(no_flap)
+
+        if flap_score > no_flap_score:
+            return True, flap_traj
+        else:
+            return False, no_flap_traj
 
 def playerShm(playerShm):
     """oscillates the value of playerShm['val'] between 8 and -8"""
