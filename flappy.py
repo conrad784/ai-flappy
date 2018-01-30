@@ -7,7 +7,7 @@ from copy import deepcopy
 from operator import itemgetter
 
 import pygame
-from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP
+from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP, K_p
 
 FPS = 30
 SCREENWIDTH  = 288
@@ -158,6 +158,14 @@ def main():
         crashInfo = mainGame(movementInfo)
         showGameOverScreen(crashInfo)
 
+def wait():
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
+                return       
 
 def showWelcomeAnimation():
     """Shows welcome screen animation of flappy bird"""
@@ -254,6 +262,8 @@ def mainGame(movementInfo):
 
     while True:
         for event in pygame.event.get():
+            if event.type == KEYDOWN and (event.key == K_p):
+                wait()
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 pygame.quit()
                 sys.exit()
