@@ -483,11 +483,12 @@ class GameState():
                 flapped = True
 
             # check for crash here
-            crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': 0},
-                                   self.upper_pipes, self.lower_pipes)
+            for index in range(3):
+                crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': index},
+                                       self.upper_pipes, self.lower_pipes)
 
-            if crashTest[0]:
-                return True
+                if crashTest[0]:
+                    return True
 
             # player's movement
             if self.player_vel_y < PLAYER_MAX_VEL_Y and not flapped: # max vel check for friction
@@ -502,13 +503,13 @@ class GameState():
                 uPipe['x'] += PIPE_VEL_X
                 lPipe['x'] += PIPE_VEL_X
 
-            # check for crash here
-            crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': 0},
+        # check for crash here
+        for index in range(3):
+            crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': index},
                                    self.upper_pipes, self.lower_pipes)
 
             if crashTest[0]:
                 return True
-
         return False
 
     def getScore(self):
