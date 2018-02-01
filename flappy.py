@@ -360,7 +360,7 @@ def mainGame(movementInfo):
         offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
         mid_x += offset_x
 
-        previous_x = PLAYER_X
+        previous_x = deepcopy(PLAYER_X)
         previous_y = deepcopy(playery)
         for y in optimal_path:
             x = previous_x - PIPE_VEL_X * FRAME_SKIP
