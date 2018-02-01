@@ -20,6 +20,8 @@ IMAGES, SOUNDS, HITMASKS = {}, {}, {}
 FRAME_SKIP = 2
 AGENT_FREQ = FRAME_SKIP
 ENABLE_ROT = False
+NUM_PATHS_VISIBLE = 4
+SHOW_OTHER_PATHS = True
 
 PLAYER_X = int(SCREENWIDTH * 0.2)
 PIPE_VEL_X = -4
@@ -362,9 +364,25 @@ def mainGame(movementInfo):
         offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
         mid_x += offset_x
 
+        try:
+            _, best_path = optimal_path[0]
+        except:
+            best_path = []
+
+        if SHOW_OTHER_PATHS:
+            for _, path in optimal_path:
+                previous_x = deepcopy(PLAYER_X)
+                previous_y = deepcopy(playery)
+                for y in path:
+                    x = previous_x - PIPE_VEL_X * FRAME_SKIP
+                    pygame.draw.line(SCREEN, (0, 0, 255), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
+
+                    previous_x = x
+                    previous_y = y
+
         previous_x = deepcopy(PLAYER_X)
         previous_y = deepcopy(playery)
-        for y in optimal_path:
+        for y in best_path:
             x = previous_x - PIPE_VEL_X * FRAME_SKIP
             pygame.draw.line(SCREEN, (255, 0, 0), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
 
@@ -530,6 +548,7 @@ class Agent():
     def getPathScore(self, state):
         global MAX_DEPTH
         global MAX_PATHS
+        global NUM_PATHS_VISIBLE
         #      state, depth, score, list of choices
         stack = [(state, 0, 0, [state.player_y])]
         final_states = []
@@ -551,9 +570,12 @@ class Agent():
                 pos_hist2.append(state2.player_y)
                 stack.append((state2, curr_depth+1, score+state2.getScore(), pos_hist2))
 
+        final_states.sort(key=itemgetter(0))
+        final_states = final_states[:NUM_PATHS_VISIBLE]
+
         try:
-            highscore = max(final_states, key=itemgetter(0))
-        except ValueError:
+            highscore = final_states[0][0], final_states
+        except IndexError:
             highscore = 0, []
         return highscore
 
