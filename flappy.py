@@ -448,6 +448,7 @@ def scoreFunction(displacement, cutoff=None):
         score        (float) - score corresponding to this displacement
     """
     global SCORE_DISTR_VARIANCE
+    global PIPEGAPSIZE
     if not cutoff:
         cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
     return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
