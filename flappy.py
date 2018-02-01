@@ -265,10 +265,11 @@ def mainGame(movementInfo):
                 flap, optimal_path = agent.findBestDecision(GameState(playery, player_vel_y, upperPipes, lowerPipes))
                 path_frame_start = frame_count
 
-            if flap:
-                player_vel_y = PLAYER_FLAP_ACC
-                playerFlapped = True
-                SOUNDS['wing'].play()
+                if flap:
+                    player_vel_y = PLAYER_FLAP_ACC
+                    playerFlapped = True
+                    SOUNDS['wing'].play()
+                    flap = False
 
         # check for crash here
         crashTest = checkCrash({'x': PLAYER_X, 'y': playery, 'index': playerIndex},
