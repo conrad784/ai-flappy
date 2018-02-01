@@ -478,8 +478,9 @@ class GameState():
         flapped = False
 
         for _ in range(FRAME_SKIP):
-            if self.player_y > -2 * IMAGES['player'][0].get_height() and flap and not flapped: # check if out of image
+            if self.player_y > -2 * IMAGES['player'][0].get_height() and flap: # check if out of image
                 self.player_vel_y = PLAYER_FLAP_ACC
+                flap = False
                 flapped = True
 
             # check for crash here
