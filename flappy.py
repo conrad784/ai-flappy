@@ -464,10 +464,10 @@ def scoreFunction(displacement, cutoff=None):
         score        (float) - score corresponding to this displacement
     """
     global SCORE_DISTR_VARIANCE
-    global PIPEGAPSIZE
     if not cutoff:
-        cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
-    return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
+        return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
+    else:
+        return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
 
 class GameState():
     def __init__(self, _player_y, _player_vel_y, _upper_pipes, _lower_pipes):
@@ -542,7 +542,12 @@ class GameState():
 
         displacement = abs(goal - self.player_y)
 
-        return scoreFunction(displacement)
+        cutoff = None
+        for p in self.upper_pipes:
+            if p.['x'] < PLAYER_X < pipeW:
+                cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
+
+        return scoreFunction(displacement, cutoff)
 
 class Agent():
     def getPathScore(self, state):
