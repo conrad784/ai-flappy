@@ -36,9 +36,11 @@ PLAYER_VEL_ROT  =   3   # angular speed
 PLAYER_ROT_THR  =  20   # rotation threshold
 PLAYER_FLAP_ACC =  -9   # players speed on flapping
 SCORE_DISTR_VARIANCE = PIPEGAPSIZE/4 - 10
+MAX_VISIBLE_DEPTH = (SCREENWIDTH - PLAYER_X) / abs(PIPE_VEL_X) / FRAME_SKIP
 
-MAX_DEPTH = 10
-MAX_PATHS = 80
+MAX_DESIRED_DEPTH = 13
+MAX_DEPTH = min(MAX_DESIRED_DEPTH, MAX_VISIBLE_DEPTH)
+MAX_PATHS = 20
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
