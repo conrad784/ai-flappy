@@ -491,6 +491,7 @@ class GameState():
             # player's movement
             if self.player_vel_y < PLAYER_MAX_VEL_Y and not flapped: # max vel check for friction
                 self.player_vel_y += PLAYER_ACC_Y
+            flapped = False
 
             playerHeight = IMAGES['player'][0].get_height() # TODO: check if this causes crashes if we dont continue to rotate 0 -> playerIndex
             self.player_y += min(self.player_vel_y, BASEY - self.player_y - playerHeight)
