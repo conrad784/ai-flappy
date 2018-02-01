@@ -361,7 +361,7 @@ def mainGame(movementInfo):
         mid_x += offset_x
 
         previous_x = PLAYER_X
-        previous_y = playery
+        previous_y = deepcopy(playery)
         for y in optimal_path:
             x = previous_x - PIPE_VEL_X * FRAME_SKIP
             pygame.draw.line(SCREEN, (255, 0, 0), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
