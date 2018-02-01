@@ -378,15 +378,13 @@ def mainGame(movementInfo):
 def showGameOverScreen(crashInfo):
     """crashes the player down ans shows gameover image"""
     global PLAYER_X
-    global PLAYER_VEL_Y
-    global PLAYER_ROT
     score = crashInfo['score']
     playery = crashInfo['y']
     playerHeight = IMAGES['player'][0].get_height()
     player_vel_y = crashInfo['player_vel_y']
-    PLAYER_ACC_Y = 2
+    player_acc_y = 2
     player_rot = crashInfo['player_rot']
-    PLAYER_VEL_ROT = 7
+    player_vel_rot = 7
 
     basex = crashInfo['basex']
 
@@ -404,8 +402,6 @@ def showGameOverScreen(crashInfo):
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 if playery + playerHeight >= BASEY - 1:
-                    PLAYER_ROT = PLAYER_ROT_DEFAULT
-                    PLAYER_VEL_Y = PLAYER_VEL_Y_DEFAULT
                     return
 
         # player y shift
@@ -414,12 +410,12 @@ def showGameOverScreen(crashInfo):
 
         # player velocity change
         if player_vel_y < 15:
-            player_vel_y += PLAYER_ACC_Y
+            player_vel_y += player_acc_y
 
         # rotate only when it's a pipe crash
         if not crashInfo['groundCrash']:
             if player_rot > -90:
-                player_rot -= PLAYER_VEL_ROT
+                player_rot -= player_vel_rot
 
         # draw sprites
         SCREEN.blit(IMAGES['background'], (0,0))
