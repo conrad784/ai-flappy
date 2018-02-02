@@ -369,40 +369,44 @@ def mainGame(movementInfo):
         playerSurface = pygame.transform.rotate(IMAGES['player'][playerIndex], visibleRot)
         SCREEN.blit(playerSurface, (PLAYER_X, playery))
 
-        mid_x, mid_y = IMAGES['player'][0].get_width() / 2, IMAGES['player'][0].get_height() / 2
-
-        offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
-        mid_x += offset_x
-
-        try:
-            _, best_path = optimal_path[0]
-        except:
-            best_path = []
-
-        if SHOW_OTHER_PATHS:
-            for _, path in optimal_path:
-                previous_x = deepcopy(PLAYER_X)
-                previous_y = deepcopy(playery)
-                for y in path:
-                    x = previous_x - PIPE_VEL_X * FRAME_SKIP
-                    pygame.draw.line(SCREEN, (0, 0, 255), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
-
-                    previous_x = x
-                    previous_y = y
-
-        previous_x = deepcopy(PLAYER_X)
-        previous_y = deepcopy(playery)
-        for y in best_path:
-            x = previous_x - PIPE_VEL_X * FRAME_SKIP
-            pygame.draw.line(SCREEN, (255, 0, 0), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
-
-            previous_x = x
-            previous_y = y
+        showCalculatedPath(optimal_path, path_frame_start, PLAYER_X, playery, frame_count, SCREEN)
 
         frame_count += 1
 
         pygame.display.update()
         FPSCLOCK.tick(FPS)
+
+def showCalculatedPath(all_paths, path_frame_start, current_x, current_y, frame_count, whichscreen):
+    mid_x, mid_y = IMAGES['player'][0].get_width() / 2, IMAGES['player'][0].get_height() / 2
+
+    offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
+    mid_x += offset_x
+
+    try:
+        _, best_path = all_paths[0]
+    except:
+        best_path = []
+
+    if SHOW_OTHER_PATHS:
+        for _, path in all_paths:
+            previous_x = deepcopy(current_x)
+            previous_y = deepcopy(current_y)
+            for y in path:
+                x = previous_x - PIPE_VEL_X * FRAME_SKIP
+                pygame.draw.line(SCREEN, (0, 0, 255), (previous_x + mid_x, previous_y + mid_y), (x + mid_x, y + mid_y), 2)
+
+                previous_x = x
+                previous_y = y
+
+    previous_x = deepcopy(current_x)
+    previous_y = deepcopy(current_y)
+        
+    for y in best_path:
+        x = current_x - PIPE_VEL_X * FRAME_SKIP
+        pygame.draw.line(whichscreen, (255, 0, 0), (current_x + mid_x, current_y + mid_y), (x + mid_x, y + mid_y), 2)
+
+        current_x = x
+        current_y = y
 
 
 def showGameOverScreen(crashInfo):
