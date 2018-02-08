@@ -187,10 +187,13 @@ def main(args):
             getHitmask(IMAGES['player'][2]),
         )
 
-        movementInfo = showWelcomeAnimation()
+        movementInfo = showWelcomeAnimation(args.restart)
         crashInfo = mainGame(args, movementInfo)
-        #showGameOverScreen(crashInfo)
-        wait()
+        if args.restart:
+            main(args)
+        else:
+            showGameOverScreen(crashInfo)
+            #wait()
 
 def wait():
     while True:
@@ -201,7 +204,7 @@ def wait():
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 return
 
-def showWelcomeAnimation():
+def showWelcomeAnimation(autostart = False):
     """Shows welcome screen animation of flappy bird"""
     global PLAYER_X
     # index of player to blit on screen
@@ -223,6 +226,12 @@ def showWelcomeAnimation():
     playerShmVals = {'val': 0, 'dir': 1}
 
     while True:
+        if autostart:
+            return {
+                    'playery': playery + playerShmVals['val'],
+                    'basex': basex,
+                    'playerIndexGen': playerIndexGen,
+                }
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 pygame.quit()
@@ -799,6 +808,8 @@ def parse_args(args):
                         help='show more verbose output')
     parser.add_argument('--single-core', action='store_true',
                         help='restrict to single process')
+    parser.add_argument('-r', '--restart', action='store_true',
+                        help='auto restart at crash')
 
     return parser.parse_args()
 
