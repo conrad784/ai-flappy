@@ -9,6 +9,9 @@ from operator import itemgetter
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP, K_p
 
+import concurrent.futures
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+
 FPS = 30
 SCREENWIDTH  = 288
 SCREENHEIGHT = 512
@@ -156,7 +159,8 @@ def main():
 
         movementInfo = showWelcomeAnimation()
         crashInfo = mainGame(movementInfo)
-        showGameOverScreen(crashInfo)
+        #showGameOverScreen(crashInfo)
+        wait()
 
 def wait():
     while True:
@@ -165,7 +169,7 @@ def wait():
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
-                return       
+                return
 
 def showWelcomeAnimation():
     """Shows welcome screen animation of flappy bird"""
@@ -260,6 +264,9 @@ def mainGame(movementInfo):
     player_vel_y = PLAYER_VEL_Y
     player_rot = PLAYER_ROT
 
+    global JOBS
+    JOBS = None
+
     while True:
         for event in pygame.event.get():
             if event.type == KEYDOWN and (event.key == K_p):
@@ -275,9 +282,26 @@ def mainGame(movementInfo):
 
         if playery > -2 * IMAGES['player'][0].get_height():
             if not frame_count % AGENT_FREQ:
-                agent = Agent()
-                flap, optimal_path = agent.findBestDecision(GameState(playery, player_vel_y, upperPipes, lowerPipes))
                 path_frame_start = frame_count
+
+                agent = Agent()
+                State = GameState(playery, player_vel_y, upperPipes, lowerPipes)
+
+                try:
+                    for future in concurrent.futures.as_completed(JOBS):
+                        task = JOBS[future]
+                        flap, optimal_path = future.result()
+                        if flap:
+                            color = RED = "\033[1;31m"
+                        else:
+                            color = GREEN = "\033[0;32m"
+                        # print("{}DEBUG_agent; flap: {} path: {}".format(color, flap, optimal_path))
+                except TypeError: # we got our first run here
+                    flap, optimal_path = False, []
+
+                FutureState = State.nextStep(flap)
+                tasks = [(agent, FutureState)]
+                JOBS = {executor.submit(x[0].findBestDecision, x[1]): x for x in tasks}
 
                 if flap:
                     player_vel_y = PLAYER_FLAP_ACC
@@ -490,7 +514,7 @@ class GameState():
         self.upper_pipes = deepcopy(_upper_pipes)
         self.lower_pipes = deepcopy(_lower_pipes)
 
-    def next(self, flap):
+    def next(self, flap, returnState = False):
         """
         This method advances the GameState by 1 tick and checks, whether or not the player crashes.
         arguments:
@@ -519,7 +543,10 @@ class GameState():
                                        self.upper_pipes, self.lower_pipes)
 
                 if crashTest[0]:
-                    return True
+                    if returnState:
+                        return True, self
+                    else:
+                        return True
 
             # player's movement
             if self.player_vel_y < PLAYER_MAX_VEL_Y and not flapped: # max vel check for friction
@@ -540,9 +567,22 @@ class GameState():
                                    self.upper_pipes, self.lower_pipes)
 
             if crashTest[0]:
-                return True
-        return False
+                if returnState:
+                    return True, self
+                else:
+                    return True
 
+        if returnState:
+            return False, self
+        else:
+            return False
+
+    def nextStep(self, flap):
+
+        nextState = deepcopy(self)
+        result = nextState.next(flap, returnState = True)
+        return result[1]
+        
     def getScore(self):
         global PIPEGAPSIZE
         goal = SCREENHEIGHT / 2
