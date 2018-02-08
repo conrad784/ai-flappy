@@ -67,7 +67,7 @@ PLAYER_ACC_Y    =   1   # players downward accleration
 PLAYER_VEL_ROT  =   3   # angular speed
 PLAYER_ROT_THR  =  20   # rotation threshold
 PLAYER_FLAP_ACC =  -9   # players speed on flapping
-SCORE_DISTR_VARIANCE = PIPEGAPSIZE/4 - 10
+SCORE_DISTR_VARIANCE = PIPEGAPSIZE/4 - 5
 MAX_VISIBLE_DEPTH = (SCREENWIDTH - PLAYER_X) / abs(PIPE_VEL_X) / FRAME_SKIP
 
 MAX_DESIRED_DEPTH = 15
@@ -527,7 +527,7 @@ def showGameOverScreen(crashInfo):
         FPSCLOCK.tick(FPS)
         pygame.display.update()
 
-def scoreFunction(displacement, cutoff=None):
+def scoreFunction(displacement, sigma, cutoff=None):
     """
     Gives score given a displacement, currently gaussian distribution because I'm not creative
 
@@ -537,11 +537,10 @@ def scoreFunction(displacement, cutoff=None):
     returns:
         score        (float) - score corresponding to this displacement
     """
-    global SCORE_DISTR_VARIANCE
     if not cutoff:
-        return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
+        return np.exp(-np.power(displacement, 2.)/(2*np.power(sigma, 2.)))
     else:
-        return np.exp(-np.power(displacement, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(SCORE_DISTR_VARIANCE, 2.)))
+        return np.exp(-np.power(displacement, 2.)/(2*np.power(sigma, 2.))) - np.exp(-np.power(cutoff, 2.)/(2*np.power(sigma, 2.)))
 
 class GameState():
     def __init__(self, _player_y, _player_vel_y, _upper_pipes, _lower_pipes):
@@ -632,10 +631,11 @@ class GameState():
 
         displacement = abs(goal - self.player_y)
 
-        cutoff = None
+        cutoff = PIPEGAPSIZE/2
         for p in self.upper_pipes:
-            if p['x'] < PLAYER_X < pipeW:
+            if p['x'] < PLAYER_X < p['x'] + pipeW:
                 cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
+                print(cutoff)
 
         return scoreFunction(displacement, cutoff)
 
