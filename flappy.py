@@ -1,4 +1,30 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# (C) 2018 Lukas Pilz & Conrad Sachweh
+
+"""NAME
+        %(prog)s - Flappy Bird Clone played by an AI
+
+SYNOPSIS
+        %(prog)s [--help]
+
+DESCRIPTION
+        none
+
+FILES
+        none
+
+SEE ALSO
+        nothing
+
+BUGS
+        none
+
+AUTHOR
+        Lukas Pilz, <email>
+        Conrad Sachweh, conrad@csachweh.de
+"""
+
 from itertools import cycle
 import random
 import sys
@@ -82,7 +108,11 @@ PIPES_LIST = (
     'assets/sprites/pipe-red.png',
 )
 
-def main():
+def main(args):
+    args = parse_args(args)
+    if args.verbose:
+        print("[INFO] arguments passed:", args)
+
     global SCREEN, FPSCLOCK
     pygame.init()
     FPSCLOCK = pygame.time.Clock()
@@ -758,5 +788,15 @@ def getHitmask(image):
             mask[x].append(bool(image.get_at((x,y))[3]))
     return mask
 
+def parse_args(args):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="MyOptions")
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='show more verbose output')
+
+    return parser.parse_args()
+
 if __name__ == '__main__':
-    main()
+    import sys
+    main(sys.argv[:])
