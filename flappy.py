@@ -533,6 +533,7 @@ def scoreFunction(displacement, sigma, cutoff=None):
 
     arguments:
         displacement (float) - how far the player is away from the goal
+        sigma        (float) - standard deviation of the distribution
         cutoff       (float) - at which displacement to award 0 points
     returns:
         score        (float) - score corresponding to this displacement
