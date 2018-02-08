@@ -188,7 +188,7 @@ def main(args):
         )
 
         movementInfo = showWelcomeAnimation()
-        crashInfo = mainGame(movementInfo)
+        crashInfo = mainGame(args, movementInfo)
         #showGameOverScreen(crashInfo)
         wait()
 
@@ -253,7 +253,7 @@ def showWelcomeAnimation():
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
-def mainGame(movementInfo):
+def mainGame(args, movementInfo):
     global PLAYER_X
     global PIPE_VEL_X
     global PLAYER_VEL_Y
@@ -315,29 +315,32 @@ def mainGame(movementInfo):
                 path_frame_start = frame_count
 
                 agent = Agent()
-                State = GameState(playery, player_vel_y, upperPipes, lowerPipes)
 
-                try:
-                    for future in concurrent.futures.as_completed(JOBS):
-                        task = JOBS[future]
-                        flap, optimal_path = future.result()
-                        if flap:
-                            color = RED = "\033[1;31m"
-                        else:
-                            color = GREEN = "\033[0;32m"
-                        # print("{}DEBUG_agent; flap: {} path: {}".format(color, flap, optimal_path))
-                except TypeError: # we got our first run here
-                    flap, optimal_path = False, []
+                if args.single_core:
+                    flap, optimal_path = agent.findBestDecision(GameState(playery, player_vel_y, upperPipes, lowerPipes))
+                else:
+                    State = GameState(playery, player_vel_y, upperPipes, lowerPipes)
 
-                FutureState = State.nextStep(flap)
-                tasks = [(agent, FutureState)]
-                JOBS = {executor.submit(x[0].findBestDecision, x[1]): x for x in tasks}
+                    try:
+                        for future in concurrent.futures.as_completed(JOBS):
+                            task = JOBS[future]
+                            flap, optimal_path = future.result()
+                    except TypeError: # we got our first run here
+                        flap, optimal_path = False, []
 
+                    FutureState = State.nextStep(flap)
+                    tasks = [(agent, FutureState)]
+                    JOBS = {executor.submit(x[0].findBestDecision, x[1]): x for x in tasks}
+
+                color = GREEN = "\033[0;32m" # debug output color
                 if flap:
                     player_vel_y = PLAYER_FLAP_ACC
                     playerFlapped = True
                     SOUNDS['wing'].play()
                     flap = False
+                    color = RED = "\033[1;31m"
+                if args.verbose > 2:
+                    print("{}DEBUG_agent; flap: {} path: {}".format(color, flap, optimal_path))
 
         # check for crash here
         crashTest = checkCrash({'x': PLAYER_X, 'y': playery, 'index': playerIndex},
@@ -794,6 +797,8 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="MyOptions")
     parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='show more verbose output')
+    parser.add_argument('--single-core', action='store_true',
+                        help='restrict to single process')
 
     return parser.parse_args()
 
