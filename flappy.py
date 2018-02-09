@@ -636,7 +636,6 @@ class GameState():
         for p in self.upper_pipes:
             if p['x'] < PLAYER_X < p['x'] + pipeW:
                 cutoff = PIPEGAPSIZE/2 - IMAGES['player'][0].get_height()/2
-                print(cutoff)
 
         return scoreFunction(displacement, cutoff)
 
