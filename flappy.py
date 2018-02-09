@@ -190,6 +190,7 @@ def main(args):
         movementInfo = showWelcomeAnimation(args.restart)
         crashInfo = mainGame(args, movementInfo)
         if args.restart:
+            print("reached score: {}".format(crashInfo['score']))
             main(args)
         else:
             showGameOverScreen(crashInfo)
