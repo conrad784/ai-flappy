@@ -34,7 +34,7 @@ from operator import itemgetter
 import click
 
 import pygame
-from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP, K_p
+from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP, K_p, K_m
 
 import concurrent.futures
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -302,6 +302,12 @@ def mainGame(verbose, single_core, movementInfo):
 
     while True:
         for event in pygame.event.get():
+            if event.type == KEYDOWN and (event.key == K_m):
+                for i in SOUNDS.values():
+                    if i.get_volume() == 0:
+                        i.set_volume(100)
+                    else:
+                        i.set_volume(0)
             if event.type == KEYDOWN and (event.key == K_p):
                 wait()
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
