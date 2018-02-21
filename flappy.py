@@ -686,31 +686,37 @@ class Agent():
         final_states.sort(key=itemgetter(0))
         final_states = final_states[:NUM_PATHS_VISIBLE]
 
-        try:
-            highscore = final_states[0][0], final_states
-        except IndexError:
-            highscore = 0, []
-        return highscore
+        return final_states
 
     def findBestDecision(self, state):
         no_flap = deepcopy(state)
 
         if state.next(True):
             no_flap.next(False)
-            score, path = self.getPathScore(no_flap)
+            path = self.getPathScore(no_flap)
             return False, path
 
         if no_flap.next(False):
-            score, path = self.getPathScore(state)
+            path = self.getPathScore(state)
             return True, path
 
-        flap_score, flap_traj = self.getPathScore(state)
-        no_flap_score, no_flap_traj = self.getPathScore(no_flap)
+        flap_states = self.getPathScore(state)
+        no_flap_states = self.getPathScore(no_flap)
 
-        if flap_score > no_flap_score:
-            return True, flap_traj
-        else:
-            return False, no_flap_traj
+        best_traj = flap_states + no_flap_states
+        best_traj.sort(key=itemgetter(0))
+        best_traj = best_traj[:NUM_PATHS_VISIBLE]
+
+        try:
+            flap_score = flap_states[0][0]
+        except IndexError:
+            flap_score = -1
+        try:
+            no_flap_score = no_flap_states[0][0]
+        except IndexError:
+            no_flap_score = -1
+
+        return flap_score > no_flap_score, best_traj
 
 def playerShm(playerShm):
     """oscillates the value of playerShm['val'] between 8 and -8"""
