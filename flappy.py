@@ -31,7 +31,6 @@ import sys
 import numpy as np
 from copy import deepcopy
 from operator import itemgetter
-import click
 
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE, K_SPACE, K_UP, K_p, K_m
@@ -109,12 +108,10 @@ PIPES_LIST = (
     'assets/sprites/pipe-red.png',
 )
 
-@click.command()
-@click.option('--verbose', '-v', count=True, default=0, help='Shows output with different levels of verbosity (0 to 3). Default: 0')
-@click.option('--single-core', is_flag=True, default=False, help='Restrict to single process. Default: False')
-def main(verbose, single_core):
-    if verbose > 0:
-        print("[INFO] arguments passed: verbose", verbose, " single core ", single_core)
+def main(args):
+    args = parse_args(args)
+    if args.verbose:
+        print("[INFO] arguments passed:", args)
 
     global SCREEN, FPSCLOCK
     pygame.init()
@@ -190,10 +187,14 @@ def main(verbose, single_core):
             getHitmask(IMAGES['player'][2]),
         )
 
-        movementInfo = showWelcomeAnimation()
-        crashInfo = mainGame(verbose, single_core, movementInfo)
-        #showGameOverScreen(crashInfo)
-        wait()
+        movementInfo = showWelcomeAnimation(args.restart)
+        crashInfo = mainGame(args, movementInfo)
+        if args.restart:
+            print("reached score: {}".format(crashInfo['score']))
+            main(args)
+        else:
+            showGameOverScreen(crashInfo)
+            #wait()
 
 def wait():
     while True:
@@ -204,7 +205,7 @@ def wait():
             if event.type == KEYDOWN and (event.key == K_SPACE or event.key == K_UP):
                 return
 
-def showWelcomeAnimation():
+def showWelcomeAnimation(autostart = False):
     """Shows welcome screen animation of flappy bird"""
     global PLAYER_X
     # index of player to blit on screen
@@ -226,6 +227,12 @@ def showWelcomeAnimation():
     playerShmVals = {'val': 0, 'dir': 1}
 
     while True:
+        if autostart:
+            return {
+                    'playery': playery + playerShmVals['val'],
+                    'basex': basex,
+                    'playerIndexGen': playerIndexGen,
+                }
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
                 pygame.quit()
@@ -256,7 +263,7 @@ def showWelcomeAnimation():
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
-def mainGame(verbose, single_core, movementInfo):
+def mainGame(args, movementInfo):
     global PLAYER_X
     global PIPE_VEL_X
     global PLAYER_VEL_Y
@@ -325,7 +332,7 @@ def mainGame(verbose, single_core, movementInfo):
 
                 agent = Agent()
 
-                if single_core:
+                if args.single_core:
                     flap, optimal_path = agent.findBestDecision(GameState(playery, player_vel_y, upperPipes, lowerPipes))
                 else:
                     State = GameState(playery, player_vel_y, upperPipes, lowerPipes)
@@ -348,7 +355,7 @@ def mainGame(verbose, single_core, movementInfo):
                     SOUNDS['wing'].play()
                     flap = False
                     color = RED = "\033[1;31m"
-                if verbose > 2:
+                if args.verbose > 2:
                     print("{}DEBUG_agent; flap: {} path: {}".format(color, flap, optimal_path))
 
         # check for crash here
@@ -466,7 +473,7 @@ def showCalculatedPath(all_paths, path_frame_start, current_x, current_y, frame_
 
     previous_x = deepcopy(current_x)
     previous_y = deepcopy(current_y)
-
+        
     for y in best_path:
         x = current_x - PIPE_VEL_X * FRAME_SKIP
         pygame.draw.line(whichscreen, (255, 0, 0), (current_x + mid_x, current_y + mid_y), (x + mid_x, y + mid_y), 2)
@@ -624,7 +631,7 @@ class GameState():
         nextState = deepcopy(self)
         result = nextState.next(flap, returnState = True)
         return result[1]
-
+        
     def getScore(self):
         global PIPEGAPSIZE
         goal = SCREENHEIGHT / 2
@@ -800,5 +807,19 @@ def getHitmask(image):
             mask[x].append(bool(image.get_at((x,y))[3]))
     return mask
 
+def parse_args(args):
+    import argparse
+
+    parser = argparse.ArgumentParser(description="MyOptions")
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='show more verbose output')
+    parser.add_argument('--single-core', action='store_true',
+                        help='restrict to single process')
+    parser.add_argument('-r', '--restart', action='store_true',
+                        help='auto restart at crash')
+
+    return parser.parse_args()
+
 if __name__ == '__main__':
-    main()
+    import sys
+    main(sys.argv[:])
