@@ -627,7 +627,12 @@ class GameState():
             return False
 
     def nextStep(self, flap):
+        """
+        only get the next step without mutation of the global state
+        needed for look-ahead in multi-threaded approach
 
+        by default this only returns the next GameState() object
+        """
         nextState = deepcopy(self)
         result = nextState.next(flap, returnState = True)
         return result[1]
