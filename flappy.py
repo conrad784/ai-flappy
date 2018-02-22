@@ -197,6 +197,7 @@ def main(args):
             #wait()
 
 def wait():
+    """Waits for keystroke, used for debugging"""
     while True:
         for event in pygame.event.get():
             if event.type == QUIT or (event.type == KEYDOWN and event.key == K_ESCAPE):
@@ -450,6 +451,20 @@ def mainGame(args, movementInfo):
         FPSCLOCK.tick(FPS)
 
 def showCalculatedPath(all_paths, path_frame_start, current_x, current_y, frame_count, whichscreen):
+    """
+    Draws all calculated paths
+
+    arguments:
+        all_paths        (list)    - list of paths sorted by score
+        path_frame_start (float)   - number of the frame at which the paths were calculated
+        current_x        (float)   - current x position of the agent
+        current_y        (float)   - current y position of the agent
+        frame_count      (float)   - current number of frame
+        whichscreen      (display) - pygame display
+    returns:
+        none
+    """
+    global SHOW_OTHER_PATHS
     mid_x, mid_y = IMAGES['player'][0].get_width() / 2, IMAGES['player'][0].get_height() / 2
 
     offset_x = (frame_count - path_frame_start) * PIPE_VEL_X
@@ -473,7 +488,7 @@ def showCalculatedPath(all_paths, path_frame_start, current_x, current_y, frame_
 
     previous_x = deepcopy(current_x)
     previous_y = deepcopy(current_y)
-        
+
     for y in best_path:
         x = current_x - PIPE_VEL_X * FRAME_SKIP
         pygame.draw.line(whichscreen, (255, 0, 0), (current_x + mid_x, current_y + mid_y), (x + mid_x, y + mid_y), 2)
@@ -586,7 +601,7 @@ class GameState():
                 flap = False
                 flapped = True
 
-            # check for crash here
+            # check for crash here; check for all pictures of the agent as it might be flapping
             for index in range(3):
                 crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': index},
                                        self.upper_pipes, self.lower_pipes)
@@ -602,7 +617,7 @@ class GameState():
                 self.player_vel_y += PLAYER_ACC_Y
             flapped = False
 
-            playerHeight = IMAGES['player'][0].get_height() # TODO: check if this causes crashes if we dont continue to rotate 0 -> playerIndex
+            playerHeight = IMAGES['player'][0].get_height()
             self.player_y += min(self.player_vel_y, BASEY - self.player_y - playerHeight)
 
             # move pipes to left
@@ -610,7 +625,7 @@ class GameState():
                 uPipe['x'] += PIPE_VEL_X
                 lPipe['x'] += PIPE_VEL_X
 
-        # check for crash here
+        # check for crash here; check for all pictures of the agent as it might be flapping
         for index in range(3):
             crashTest = checkCrash({'x': PLAYER_X, 'y': self.player_y, 'index': index},
                                    self.upper_pipes, self.lower_pipes)
@@ -632,12 +647,25 @@ class GameState():
         needed for look-ahead in multi-threaded approach
 
         by default this only returns the next GameState() object
+
+        arguments:
+            flap        (bool)  - whether or not to flap when starting the simulation
+        returns:
+            state       (GameState) - new game state
         """
         nextState = deepcopy(self)
         result = nextState.next(flap, returnState = True)
         return result[1]
-        
+
     def getScore(self):
+        """
+        returns the score of the current GameState
+
+        arguments:
+            none
+        returns:
+            score        (float) - score corresponding to this GameState
+        """
         global PIPEGAPSIZE
         goal = SCREENHEIGHT / 2
 
@@ -659,6 +687,14 @@ class GameState():
 
 class Agent():
     def getPathScore(self, state):
+        """
+        performs the tree search and returns the best NUM_PATHS_VISIBLE paths
+
+        arguments:
+            state        (GameState) - state from which to start the tree search
+        returns:
+            final_states (list)      - list of scores with corresponding position histories of the best NUM_PATHS_VISIBLE paths
+        """
         global MAX_DEPTH
         global MAX_PATHS
         global NUM_PATHS_VISIBLE
@@ -689,6 +725,15 @@ class Agent():
         return final_states
 
     def findBestDecision(self, state):
+        """
+        finds the best decision for the agent by performing two tree searches
+
+        arguments:
+            state        (GameState) - state for which to decide
+        returns:
+            flap         (bool)      - decision on whether or not to flap next
+            path         (list)      - list of position histories of the best NUM_PATHS_VISIBLE paths
+        """
         no_flap = deepcopy(state)
 
         if state.next(True):
