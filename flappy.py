@@ -46,7 +46,7 @@ PIPEGAPSIZE  = 100 # gap between upper and lower part of pipe
 BASEY        = SCREENHEIGHT * 0.79
 # image, sound and hitmask  dicts
 IMAGES, SOUNDS, HITMASKS = {}, {}, {}
-FRAME_SKIP = 3
+FRAME_SKIP = 2
 AGENT_FREQ = FRAME_SKIP
 ENABLE_ROT = False
 NUM_PATHS_VISIBLE = 5
@@ -69,9 +69,9 @@ PLAYER_FLAP_ACC =  -9   # players speed on flapping
 SCORE_DISTR_VARIANCE = PIPEGAPSIZE/4 - 5
 MAX_VISIBLE_DEPTH = (SCREENWIDTH - PLAYER_X) / abs(PIPE_VEL_X) / FRAME_SKIP
 
-MAX_DESIRED_DEPTH = 15
+MAX_DESIRED_DEPTH = 19
 MAX_DEPTH = min(MAX_DESIRED_DEPTH, MAX_VISIBLE_DEPTH)
-MAX_PATHS = 5
+MAX_PATHS = 15
 
 # list of all possible players (tuple of 3 positions of flap)
 PLAYERS_LIST = (
