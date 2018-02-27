@@ -16,9 +16,9 @@ How-to
 5. If you really want, u can use <kbd>&uarr;</kbd> or <kbd>Space</kbd> key to play yourself but it is strongly discouraged. Press <kbd>Esc</kbd> to close the game and <kbd>m</kbd> to mute the sound.
 
 
-ScreenShot
-----------
+ScreenShots
+-----------
 
-![Flappy Bird](example.png)
+![Flappy Bird](example.png) ![Animation](preview.gif)
 
 [1]: http://www.pygame.org
